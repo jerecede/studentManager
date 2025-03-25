@@ -8,7 +8,24 @@ export default class SuperGrid extends HTMLElement {
         this.attachShadow({mode: 'open'});
     }
 
-    connectedCallback(){
+    async connectedCallback(){
+
+        this.studentServ = new StudentService();
+        this.students = await this.studentServ.loadStudents();
+
+        const sDialog = document.getElementById('student-dialog');
+        sDialog.addEventListener('student-added', (event) => {
+            const newStudent = event.detail;
+            this.students = this.studentServ.addStudent(newStudent);
+            this.render();
+        });
+        sDialog.addEventListener('student-edited', (event) => {
+            const newStudent = event.detail.student;
+            const index = event.detail.index;
+            this.students = this.studentServ.editStudent(newStudent, index);
+            this.render();
+        });
+
         this.style()
         this.render()
     }
@@ -25,37 +42,42 @@ export default class SuperGrid extends HTMLElement {
         this.shadowRoot.appendChild(style);
     }
 
-    async render(){
+    render(){
 
-
-        this.studentServ = new StudentService();
-        this.students = await this.studentServ.loadStudents();
-
+        if(!this.container){
+            this.container = document.createElement('div');
+            this.shadowRoot.appendChild(this.container);
+        } else {
+            this.container.innerHTML = '';
+        }
+        
         const controlsDiv = document.createElement('div');
 
         const btn = document.createElement('button');
         btn.appendChild(document.createTextNode('add'));
         btn.addEventListener('click', () => {
             const sDialog = document.getElementById('student-dialog');
-            sDialog.showModal()
-        })
+            sDialog.addStudent();
+        });
 
         controlsDiv.appendChild(btn);
 
-        this.shadowRoot.appendChild(controlsDiv);
+        this.container.appendChild(controlsDiv);
 
         const main = document.createElement('div');
         main.classList.add('grid')
     
-        for (const student of this.students) {
+        for (let i=0; i < this.students.length; i++) {
+            const student = this.students[i];
             
             const card = document.createElement('student-card');
             card.setAttribute('selected-student', JSON.stringify(student));
+            card.setAttribute('selected-index', i);
     
             main.appendChild(card)
         }
 
-        this.shadowRoot.appendChild(main)
+        this.container.appendChild(main)
     }
 
 }

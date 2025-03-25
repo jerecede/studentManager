@@ -26,25 +26,72 @@ export default class SuperDialog extends HTMLElement{
 
     render(){
 
-        const dialog = document.createElement('dialog');
-        dialog.setAttribute('id', 'dialog');
+        this.dialog = document.createElement('dialog');
+        this.dialog.setAttribute('id', 'dialog');
 
-        dialog.innerHTML = `
+        this.dialog.innerHTML = `
         <form id="form">
             <label for="name">Nome:</label>
             <input type="text" name="name" id="name">
             <label for="yob">Anno di nascita:</label>
             <input type="number" name="yob" id="yob">
         </form>
-        <button id="cancel-btn">cancella</button>
-        <button id="ok-btn">ok</button>
         `
-        this.shadow.appendChild(dialog);
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.appendChild(document.createTextNode('cancella'))
+        cancelBtn.addEventListener('click', () => this.dialog.close());
+        this.dialog.appendChild(cancelBtn);
+
+        const okBtn = document.createElement('button');
+        okBtn.appendChild(document.createTextNode('ok'))
+        okBtn.addEventListener('click', () => this.dispatchStudent());
+        this.dialog.appendChild(okBtn);
+
+        this.shadow.appendChild(this.dialog);
     }
 
-    showModal(){
-         const dialog = this.shadowRoot.querySelector('#dialog');
-         dialog.showModal()
+    dispatchStudent(){
+        const form = this.shadow.getElementById('form');
+        const data = new FormData(form);
+        const student = {
+            name: data.get('name'),
+            yob: Number(data.get('yob'))
+        }
+
+        if(this.isEdit){
+            const event = new CustomEvent('student-edited', {detail: {index: this.index, student: student}})
+            this.dispatchEvent(event);
+        } else {
+            const event = new CustomEvent('student-added', {detail: student})
+            this.dispatchEvent(event);
+        }
+
+        this.dialog.close();
+    }
+
+    setupForm(student){
+        const form = this.shadow.getElementById('form');
+        form.reset();
+        if(student){
+            const nameInput = this.shadow.getElementById('name');
+            nameInput.value = student.name;
+            const yobInput = this.shadow.getElementById('yob');
+            yobInput.value = student.yob;
+        }
+    }
+
+    editStudent(student, index){
+        this.isEdit = true;
+        this.index = index;
+        this.setupForm(student);
+        this.dialog.showModal();
+    }
+
+    addStudent(){
+        this.isEdit = false;
+        this.setupForm();
+        this.dialog.showModal();
     }
 }
 
